@@ -60,6 +60,7 @@ import android.os.Vibrator;
 import android.provider.Settings;
 
 import com.android.internal.R;
+import com.android.internal.app.ThemeUtils;
 import com.android.internal.policy.PolicyManager;
 import com.android.internal.policy.impl.keyguard.KeyguardViewManager;
 import com.android.internal.policy.impl.keyguard.KeyguardViewMediator;
@@ -231,6 +232,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     final Object mLock = new Object();
 
     Context mContext;
+    Context mUiContext;
     IWindowManager mWindowManager;
     WindowManagerFuncs mWindowManagerFuncs;
     PowerManager mPowerManager;
@@ -1098,6 +1100,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             int userRotation = Settings.System.getIntForUser(resolver,
                     Settings.System.USER_ROTATION, Surface.ROTATION_0,
                     UserHandle.USER_CURRENT);
+
             if (mUserRotation != userRotation) {
                 mUserRotation = userRotation;
                 updateRotation = true;
@@ -1555,14 +1558,17 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             if (DEBUG_STARTING_WINDOW) Slog.d(TAG, "addStartingWindow " + packageName
                     + ": nonLocalizedLabel=" + nonLocalizedLabel + " theme="
                     + Integer.toHexString(theme));
-            if (theme != context.getThemeResId() || labelRes != 0) {
-                try {
-                    context = context.createPackageContext(packageName, 0);
+
+            try {
+                context = context.createPackageContext(packageName, 0);
+                if (theme != context.getThemeResId()) {
                     context.setTheme(theme);
-                } catch (PackageManager.NameNotFoundException e) {
-                    // Ignore
                 }
+            } catch (PackageManager.NameNotFoundException e) {
+                // Ignore
             }
+
+            // Construct the Toast
 
             Window win = PolicyManager.makeNewWindow(context);
             final TypedArray ta = win.getWindowStyle();
@@ -3808,6 +3814,12 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     updateSystemUiVisibilityLw();
                 }
             }
+        }
+    };
+
+    BroadcastReceiver mThemeChangeReceiver = new BroadcastReceiver() {
+        public void onReceive(Context context, Intent intent) {
+            mUiContext = null;
         }
     };
 
