@@ -76,6 +76,10 @@ public class KeyStore {
         return (values == null || values.isEmpty()) ? null : values.get(0);
     }
 
+    public boolean isUnlocked() {
+        return state() == State.UNLOCKED;
+    }
+
     public byte[] get(String key) {
         return get(getKeyBytes(key));
     }
