@@ -27,6 +27,7 @@ import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.StatusBarManager;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -214,6 +215,13 @@ public class PhoneStatusBar extends BaseStatusBar {
     private int mNotificationHeaderHeight;
 
     private boolean mShowCarrierInPanel = false;
+
+    // clock
+    private boolean mShowClock;
+
+    // drag bar
+    CloseDragHandle mCloseView;
+    private int mCloseViewHeight;
 
     // position
     int[] mPositionTmp = new int[2];
@@ -1177,9 +1185,12 @@ public class PhoneStatusBar extends BaseStatusBar {
 
     public void showClock(boolean show) {
         if (mStatusBarView == null) return;
+        ContentResolver resolver = mContext.getContentResolver();
         View clock = mStatusBarView.findViewById(R.id.clock);
+        mShowClock = (Settings.System.getInt(resolver,
+                Settings.System.STATUS_BAR_CLOCK, 1) == 1);
         if (clock != null) {
-            clock.setVisibility(show ? View.VISIBLE : View.GONE);
+            clock.setVisibility(show ? (mShowClock ? View.VISIBLE : View.GONE) : View.GONE);
         }
     }
 
