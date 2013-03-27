@@ -2180,105 +2180,6 @@ public final class Settings {
         public static final String NOTIFICATION_LIGHT_PULSE = "notification_light_pulse";
 
         /**
-         * What color to use for the notification LED by default
-         * @hide
-         */
-        public static final String NOTIFICATION_LIGHT_PULSE_DEFAULT_COLOR = "notification_light_pulse_default_color";
-
-        /**
-         * How long to flash the notification LED by default
-         * @hide
-         */
-        public static final String NOTIFICATION_LIGHT_PULSE_DEFAULT_LED_ON = "notification_light_pulse_default_led_on";
-
-        /**
-         * How long to wait between flashes for the notification LED by default
-         * @hide
-         */
-        public static final String NOTIFICATION_LIGHT_PULSE_DEFAULT_LED_OFF = "notification_light_pulse_default_led_off";
-
-        /**
-         * What color to use for the missed call notification LED
-         * @hide
-         */
-        public static final String NOTIFICATION_LIGHT_PULSE_CALL_COLOR = "notification_light_pulse_call_color";
-
-        /**
-         * How long to flash the missed call notification LED
-         * @hide
-         */
-        public static final String NOTIFICATION_LIGHT_PULSE_CALL_LED_ON = "notification_light_pulse_call_led_on";
-
-        /**
-         * How long to wait between flashes for the missed call notification LED
-         * @hide
-         */
-        public static final String NOTIFICATION_LIGHT_PULSE_CALL_LED_OFF = "notification_light_pulse_call_led_off";
-
-        /**
-         * What color to use for the voicemail notification LED
-         * @hide
-         */
-        public static final String NOTIFICATION_LIGHT_PULSE_VMAIL_COLOR = "notification_light_pulse_vmail_color";
-
-        /**
-         * How long to flash the voicemail notification LED
-         * @hide
-         */
-        public static final String NOTIFICATION_LIGHT_PULSE_VMAIL_LED_ON = "notification_light_pulse_vmail_led_on";
-
-        /**
-         * How long to wait between flashes for the voicemail notification LED
-         * @hide
-         */
-        public static final String NOTIFICATION_LIGHT_PULSE_VMAIL_LED_OFF = "notification_light_pulse_vmail_led_off";
-
-        /**
-         * Whether to use the custom LED values for the notification pulse LED.
-         * @hide
-         */
-        public static final String NOTIFICATION_LIGHT_PULSE_CUSTOM_ENABLE = "notification_light_pulse_custom_enable";
-
-        /**
-         * Which custom LED values to use for the notification pulse LED.
-         * @hide
-         */
-        public static final String NOTIFICATION_LIGHT_PULSE_CUSTOM_VALUES = "notification_light_pulse_custom_values";
-
-        /**
-         * Whether the battery light should be enabled (if hardware supports it)
-         * The value is boolean (1 or 0).
-         * @hide
-         */
-        public static final String BATTERY_LIGHT_ENABLED = "battery_light_enabled";
-
-        /**
-         * Whether the battery LED should repeatedly flash when the battery is low
-         * on charge. The value is boolean (1 or 0).
-         * @hide
-         */
-        public static final String BATTERY_LIGHT_PULSE = "battery_light_pulse";
-
-        /**
-         * What color to use for the battery LED while charging - low
-         * @hide
-         */
-        public static final String BATTERY_LIGHT_LOW_COLOR = "battery_light_low_color";
-
-        /**
-         * What color to use for the battery LED while charging - medium
-         * @hide
-         */
-        public static final String BATTERY_LIGHT_MEDIUM_COLOR = "battery_light_medium_color";
-
-        /**
-         * What color to use for the battery LED while charging - full
-         * @hide
-         */
-        public static final String BATTERY_LIGHT_FULL_COLOR = "battery_light_full_color";
-
-
-        /**
          * Show pointer location on screen?
          * 0 = no
          * 1 = yes
@@ -2464,6 +2365,109 @@ public final class Settings {
          */
         public static final String NAV_BUTTONS_HEIGHT = "nav_buttons_height";
 
+        /**
+        * AutoHide CombinedBar on tablets.
+        * @hide
+        */
+        public static final String COMBINED_BAR_AUTO_HIDE = "combined_bar_auto_hide";
+
+        /**
+         * Display style of AM/PM next to clock in status bar
+         * 0: Normal display (Eclair stock)
+         * 1: Small display (Froyo stock)
+         * 2: No display (Gingerbread/ICS stock)
+         * default: 2
+         * @hide
+         */
+        public static final String STATUS_BAR_AM_PM = "status_bar_am_pm";
+
+        /**
+         * Display style of the status bar battery information
+         * 0: Display the stock battery information
+         * 1: Display cm battery percentage implementation / dont show stock icon
+         * 2: Display cm circle battery implementation without percentage
+         * 3: Display cm circle battery implementation with percentage
+         * 4: Hide the battery information
+         * default: 0
+         * @hide
+         */
+        public static final String STATUS_BAR_BATTERY = "status_bar_battery";
+
+        /**
+         * Whether to show the clock in status bar
+         * of the stock battery icon
+         * 0: don't show the clock
+         * 1: show the clock
+         * default: 1
+         * @hide
+         */
+        public static final String STATUS_BAR_CLOCK = "status_bar_clock";
+
+        /**
+         * Whether to show the signal text or signal bars.
+         * default: 0
+         * 0: show signal bars
+         * 1: show signal text numbers
+         * 2: show signal text numbers w/small dBm appended
+         * @hide
+         */
+        public static final String STATUS_BAR_SIGNAL_TEXT = "status_bar_signal";
+
+         /**
+         * Whether to control brightness from status bar
+         *
+         * @hide
+         */
+        public static final String STATUS_BAR_BRIGHTNESS_CONTROL = "status_bar_brightness_control";
+
+        /**
+         * Whether to show the IME switcher in the status bar
+         * @hide
+         */
+        public static final String STATUS_BAR_IME_SWITCHER = "status_bar_ime_switcher";
+
+        /**
+         * Show the pending notification counts as overlays on the status bar
+         * @hide
+         */
+        public static final String STATUS_BAR_NOTIF_COUNT = "status_bar_notif_count";
+
+        /**
+         * Whether to show the battery bar
+         * @hide
+         */
+        public static final String STATUSBAR_BATTERY_BAR = "statusbar_battery_bar";
+
+        /**
+         * @hide
+         */
+        public static final String STATUSBAR_BATTERY_BAR_COLOR = "statusbar_battery_bar_color";
+
+        /**
+         * @hide
+         */
+        public static final String STATUSBAR_BATTERY_BAR_THICKNESS = "statusbar_battery_bar_thickness";
+
+        /**
+         * @hide
+         */
+        public static final String STATUSBAR_BATTERY_BAR_STYLE = "statusbar_battery_bar_style";
+
+        /**
+         * @hide
+         */
+        public static final String STATUSBAR_BATTERY_BAR_ANIMATE = "statusbar_battery_bar_animate";
+
+        /**
+         * Custom navring actions
+         *
+         * @hide
+         */
+        public static final String[] NAVIGATION_RING_TARGETS = new String[] {
+            "navigation_ring_targets_0",
+            "navigation_ring_targets_1",
+            "navigation_ring_targets_2",
+        };
 
         /**
          * Settings to backup. This is here so that it's in the same place as the settings
