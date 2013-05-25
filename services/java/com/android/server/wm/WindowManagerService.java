@@ -5467,6 +5467,12 @@ public class WindowManagerService extends IWindowManager.Stub
         mInputManager.setInputFilter(filter);
     }
 
+    // Called by window manager policy.  Not exposed externally.
+    @Override
+    public void reboot(boolean confirm) {
+        ShutdownThread.reboot(mContext, null, confirm);
+    }
+
     public void setCurrentUser(final int newUserId) {
         synchronized (mWindowMap) {
             mCurrentUserId = newUserId;
