@@ -157,7 +157,7 @@ public class DevicePolicyManagerService extends IDevicePolicyManager.Stub {
                 removeUserData(userHandle);
             } else if (Intent.ACTION_USER_STARTED.equals(action)
                     || Intent.ACTION_PACKAGE_CHANGED.equals(action)
-                    || Intent.ACTION_PACKAGE_REMOVED.equals(action)
+                    || Intent.ACTION_PACKAGE_FULLY_REMOVED.equals(action)
                     || Intent.ACTION_EXTERNAL_APPLICATIONS_UNAVAILABLE.equals(action)) {
 
                 if (Intent.ACTION_USER_STARTED.equals(action)) {
@@ -478,6 +478,7 @@ public class DevicePolicyManagerService extends IDevicePolicyManager.Stub {
                         || pm.getReceiverInfo(aa.info.getComponent(), 0, userHandle) == null) {
                     removed = true;
                     policy.mAdminList.remove(i);
+                    policy.mAdminMap.remove(aa.info.getComponent());
                 }
             } catch (RemoteException re) {
                 // Shouldn't happen
@@ -505,7 +506,7 @@ public class DevicePolicyManagerService extends IDevicePolicyManager.Stub {
         context.registerReceiverAsUser(mReceiver, UserHandle.ALL, filter, null, mHandler);
         filter = new IntentFilter();
         filter.addAction(Intent.ACTION_PACKAGE_CHANGED);
-        filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        filter.addAction(Intent.ACTION_PACKAGE_FULLY_REMOVED);
         filter.addAction(Intent.ACTION_EXTERNAL_APPLICATIONS_UNAVAILABLE);
         filter.addDataScheme("package");
         context.registerReceiverAsUser(mReceiver, UserHandle.ALL, filter, null, mHandler);
