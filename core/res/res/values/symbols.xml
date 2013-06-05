@@ -1823,6 +1823,15 @@
 
   <!-- From PinyinIME(!!!) -->
   <java-symbol type="string" name="inputMethod" />
+
+<!-- ===============================================================
+  Extra Added Resources
+  =============================================================== -->
+  <eat-comment />
+
+  <!-- Config.xml entries -->
+  <java-symbol type="bool" name="config_hasRotationLockSwitch" />
+
   <!-- Power menu -->
   <java-symbol type="string" name="global_action_screenshot" />
   <java-symbol type="string" name="global_action_reboot" />
