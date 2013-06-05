@@ -1834,4 +1834,6 @@
   <java-symbol type="drawable" name="ic_lock_screenshot" />
   <java-symbol type="drawable" name="ic_lock_reboot" />
 
+  <!-- Lockscreen -->
+  <java-symbol type="id" name="expand_challenge_handle" />
 </resources>
