@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
+ * This code has been modified.  Portions copyright (C) 2010, T-Mobile USA, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -860,6 +861,15 @@ public class WindowManagerService extends IWindowManager.Stub
         } finally {
             Surface.closeTransaction();
         }
+
+        ThemeUtils.registerThemeChangeReceiver(mContext, mThemeChangeReceiver);
+    }
+
+    private Context getUiContext() {
+        if (mUiContext == null) {
+            mUiContext = ThemeUtils.createUiContext(mContext);
+        }
+        return mUiContext != null ? mUiContext : mContext;
     }
 
     public InputMonitor getInputMonitor() {
@@ -5481,7 +5491,7 @@ public class WindowManagerService extends IWindowManager.Stub
     // Called by window manager policy.  Not exposed externally.
     @Override
     public void reboot(boolean confirm) {
-        ShutdownThread.reboot(mContext, null, confirm);
+        ShutdownThread.reboot(getUiContext(), null, confirm);
     }
 
     public void setCurrentUser(final int newUserId) {

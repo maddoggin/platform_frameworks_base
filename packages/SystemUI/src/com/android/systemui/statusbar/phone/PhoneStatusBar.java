@@ -410,7 +410,7 @@ public class PhoneStatusBar extends BaseStatusBar {
         try {
             boolean showNav = mWindowManagerService.hasNavigationBar();
             if (DEBUG) Slog.v(TAG, "hasNavigationBar=" + showNav);
-            if (showNav && !mRecreating) {
+            if (mNavigationBarView == null && showNav && !mRecreating) {
                 mNavigationBarView =
                     (NavigationBarView) View.inflate(context, R.layout.navigation_bar, null);
 
@@ -431,11 +431,6 @@ public class PhoneStatusBar extends BaseStatusBar {
         mNotificationIcons.setOverflowIndicator(mMoreIcon);
         mStatusBarContents = (LinearLayout)mStatusBarView.findViewById(R.id.status_bar_contents);
         mTickerView = mStatusBarView.findViewById(R.id.ticker);
-
-        /* Destroy the old widget before recreating the expanded dialog
-           to make sure there are no context issues */
-        if (mRecreating)
-            mPowerWidget.destroyWidget();
 
         mPile = (NotificationRowLayout)mStatusBarWindow.findViewById(R.id.latestItems);
         mPile.setLayoutTransitionsEnabled(false);
