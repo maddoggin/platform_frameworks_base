@@ -1703,6 +1703,12 @@ public final class Settings {
         public static final int SCREEN_BRIGHTNESS_MODE_AUTOMATIC = 1;
 
         /**
+         * Whether to enable the electron beam animation when turning screen off
+         *
+         * @hide */
+        public static final String SCREEN_OFF_ANIMATION = "screen_off_animation";
+
+        /**
          * Control whether the process CPU usage meter should be shown.
          *
          * @deprecated Use {@link Global#SHOW_PROCESSES} instead
@@ -2333,7 +2339,6 @@ public final class Settings {
          * @hide
          */
         public static final String POINTER_SPEED = "pointer_speed";
-
         /**
          * Navigation controls to Use
          *
@@ -2346,8 +2351,6 @@ public final class Settings {
          * @hide
          */
         public static final String NAV_BUTTONS_HEIGHT = "nav_buttons_height";
-
-
 
         /**
          * Settings to backup. This is here so that it's in the same place as the settings

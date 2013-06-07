@@ -1845,4 +1845,8 @@
 
   <!-- Lockscreen -->
   <java-symbol type="id" name="expand_challenge_handle" />
+
+  <!-- Electron Beam -->
+  <java-symbol type="bool" name="config_screenOffAnimation" />
+
 </resources>
