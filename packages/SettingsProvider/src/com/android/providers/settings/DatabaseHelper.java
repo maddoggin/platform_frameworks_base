@@ -2226,7 +2226,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             // Set the preferred network mode to 0 = Global, CDMA default
             int type;
             if (TelephonyManager.getLteOnCdmaModeStatic() == PhoneConstants.LTE_ON_CDMA_TRUE) {
-                type = Phone.NT_MODE_GLOBAL;
+                type = Phone.NT_MODE_LTE_CMDA_EVDO_GSM_WCDMA;
             } else {
                 type = SystemProperties.getInt("ro.telephony.default_network",
                         RILConstants.PREFERRED_NETWORK_MODE);
