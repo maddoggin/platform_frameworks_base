@@ -35,8 +35,8 @@ endef
 ##########################################
 # We may only afford small font footprint.
 ##########################################
-$(eval $(call create-font-symlink,DroidSans.ttf,Roboto-Regular.ttf))
-$(eval $(call create-font-symlink,DroidSans-Bold.ttf,Roboto-Bold.ttf))
+$(eval $(call create-font-symlink,DroidSans.ttf,RobotoSlab-Regular.ttf))
+$(eval $(call create-font-symlink,DroidSans-Bold.ttf,RobotoSlab-Bold.ttf))
 
 ################################
 # On space-constrained devices, we include a subset of fonts:
@@ -116,8 +116,8 @@ $(eval include $(BUILD_PREBUILT))
 endef
 
 font_src_files := \
-    Roboto-Regular.ttf \
-    Roboto-Bold.ttf \
+    RobotoSlab-Regular.ttf \
+    RobotoSlab-Bold.ttf \
     Roboto-Italic.ttf \
     Roboto-BoldItalic.ttf \
     DroidSerif-Regular.ttf \
@@ -132,9 +132,9 @@ font_src_files := \
 
 ifeq ($(MINIMAL_FONT_FOOTPRINT),true)
 
-$(eval $(call create-font-symlink,Roboto-Light.ttf,Roboto-Regular.ttf))
+$(eval $(call create-font-symlink,RobotoSlab-Light.ttf,RobotoSlab-Regular.ttf))
 $(eval $(call create-font-symlink,Roboto-LightItalic.ttf,Roboto-Italic.ttf))
-$(eval $(call create-font-symlink,Roboto-Thin.ttf,Roboto-Regular.ttf))
+$(eval $(call create-font-symlink,RobotoSlab-Thin.ttf,RobotoSlab-Regular.ttf))
 $(eval $(call create-font-symlink,Roboto-ThinItalic.ttf,Roboto-Italic.ttf))
 $(eval $(call create-font-symlink,RobotoCondensed-Regular.ttf,Roboto-Regular.ttf))
 $(eval $(call create-font-symlink,RobotoCondensed-Bold.ttf,Roboto-Bold.ttf))
@@ -143,9 +143,9 @@ $(eval $(call create-font-symlink,RobotoCondensed-BoldItalic.ttf,Roboto-BoldItal
 
 else # !MINIMAL_FONT
 font_src_files += \
-    Roboto-Light.ttf \
+    RobotoSlab-Light.ttf \
     Roboto-LightItalic.ttf \
-    Roboto-Thin.ttf \
+    RobotoSlab-Thin.ttf \
     Roboto-ThinItalic.ttf \
     RobotoCondensed-Regular.ttf \
     RobotoCondensed-Bold.ttf \
