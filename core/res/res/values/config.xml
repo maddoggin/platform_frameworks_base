@@ -273,8 +273,7 @@
          "name,apn,proxy,port,username,password,server,mmsc,mmsproxy,mmsport,mcc,mnc,auth,type",
          Or string format of ApnSettingV2.
          note that empty fields can be ommitted: "name,apn,,,,,,,,,310,260,,DUN" -->
-    <string-array translatable="false" name="config_tether_apndata">
-    </string-array>
+    <string-array translatable="false" name="config_tether_apndata"></string-array>
 
     <!-- Boolean indicating whether the wifi chipset has dual frequency band support -->
     <bool translatable="false" name="config_wifi_dual_band_support">false</bool>

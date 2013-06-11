@@ -20,13 +20,13 @@ PRODUCT_COPY_FILES := \
 
 PRODUCT_PACKAGES := \
     DroidSansFallback.ttf \
-    RobotoSlab-Regular.ttf \
-    RobotoSlab-Bold.ttf \
+    Roboto-Regular.ttf \
+    Roboto-Bold.ttf \
     Roboto-Italic.ttf \
     Roboto-BoldItalic.ttf \
-    RobotoSlab-Light.ttf \
+    Roboto-Light.ttf \
     Roboto-LightItalic.ttf \
-    RobotoSlab-Thin.ttf \
+    Roboto-Thin.ttf \
     Roboto-ThinItalic.ttf \
     RobotoCondensed-Regular.ttf \
     RobotoCondensed-Bold.ttf \
