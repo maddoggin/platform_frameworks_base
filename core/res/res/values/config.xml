@@ -1304,4 +1304,7 @@
         <item>333</item>
         <item>353</item>
     </string-array>
+
+    <!-- Whether cpu boost is enabled for overscroller fling. -->
+    <bool name="config_enableCpuBoostForOverScrollerFling">false</bool>
 </resources>
