@@ -2416,6 +2416,18 @@ public final class Settings {
         public static final String EGG_MODE = "egg_mode";
 
         /**
+         * show clear all recents button
+         *  @hide
+         */
+        public static final String SHOW_CLEAR_RECENTS_BUTTON = "clear_recents_button";
+
+        /**
+         * location of the clear all rectents button
+         * @hide
+         */
+        public static final String CLEAR_RECENTS_BUTTON_LOCATION = "clear_recents_button_location";
+
+        /**
          * Immersive mode global actions switch
          * 0 = no
          * 1 = yes
