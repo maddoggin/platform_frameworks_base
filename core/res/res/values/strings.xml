@@ -4527,7 +4527,5 @@
     <!-- Cling help message when hiding the navigation bar entering immersive mode [CHAR LIMIT=none] -->
     <string name="immersive_mode_confirmation" msgid="8554991488096662508">Swipe down from the top to exit full screen.</string>
 
-    <!-- Text of the checkbox for the permission confirmation dialog to remember the user's choice. [CHAR LIMIT=40] -->
-    <string name="permission_remember_choice">Remember</string>
     <string name="permission">Permission</string>
 </resources>
