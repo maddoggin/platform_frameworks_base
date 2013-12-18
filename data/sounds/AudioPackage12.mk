@@ -9,9 +9,9 @@ LOCAL_PATH := frameworks/base/data/sounds
 
 # Simple files that do not require renaming
 ALARM_FILES := Argon Carbon Helium Krypton Neon Oxygen Osmium Platinum
-NOTIFICATION_FILES := Ariel Ceres Carme Elara Europa Iapetus Io Rhea Salacia Titan Tethys
-RINGTONE_FILES := Callisto Dione Ganymede Luna Oberon Phobos Sedna Titania Triton Umbriel
-EFFECT_FILES := Effect_Tick KeypressReturn KeypressInvalid KeypressDelete KeypressSpacebar KeypressStandard \
+NOTIFICATION_FILES := Ariel Ceres Carme Elara Europa Iapetus Io Mira Rhea Salacia Titan Tethys
+RINGTONE_FILES := Callisto Dione Ganymede Girtab Luna Oberon Phobos RobotsforEveryone Sedna SpagnolaOrchestration Titania Themos Triton Umbriel
+EFFECT_FILES := Effect_Tick camera_focus KeypressReturn KeypressInvalid KeypressDelete KeypressSpacebar KeypressStandard \
 	VideoRecord camera_click camera_focus LowBattery Dock Undock Lock Unlock WirelessChargingStarted
 
 PRODUCT_COPY_FILES += $(foreach fn,$(ALARM_FILES),\
