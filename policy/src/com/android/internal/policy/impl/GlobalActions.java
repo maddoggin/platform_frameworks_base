@@ -288,8 +288,6 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
             });
 
      // next: screenshot, if enabled
-        if (Settings.System.getInt(mContext.getContentResolver(),
-                Settings.System.SCREENSHOT_IN_POWER_MENU, 0) != 0) {
             mItems.add(
                 new SinglePressAction(com.android.internal.R.drawable.ic_lock_screenshot,
                         R.string.global_action_screenshot) {
