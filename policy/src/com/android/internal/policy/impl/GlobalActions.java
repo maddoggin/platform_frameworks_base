@@ -308,7 +308,6 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
                         return true;
                     }
                 });
-        }
 
         // next: airplane mode
         mItems.add(mAirplaneModeOn);
