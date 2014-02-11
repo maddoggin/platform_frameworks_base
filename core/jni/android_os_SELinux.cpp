@@ -411,7 +411,7 @@ static jboolean native_restorecon(JNIEnv *env, jobject, jstring pathnameStr) {
 
     ScopedUtfChars pathname(env, pathnameStr);
     if (pathname.c_str() == NULL) {
-        ALOGV("restorecon(%p) => threw exception", pathname);
+        ALOGV("restorecon(%p) => threw exception", pathnameStr);
         return false;
     }
 
@@ -443,8 +443,21 @@ static JNINativeMethod method_table[] = {
 
 static int log_callback(int type, const char *fmt, ...) {
     va_list ap;
+    int priority;
+
+    switch (type) {
+    case SELINUX_WARNING:
+        priority = ANDROID_LOG_WARN;
+        break;
+    case SELINUX_INFO:
+        priority = ANDROID_LOG_INFO;
+        break;
+    default:
+        priority = ANDROID_LOG_ERROR;
+        break;
+    }
     va_start(ap, fmt);
-    LOG_PRI_VA(ANDROID_LOG_ERROR, "SELinux", fmt, ap);
+    LOG_PRI_VA(priority, "SELinux", fmt, ap);
     va_end(ap);
     return 0;
 }

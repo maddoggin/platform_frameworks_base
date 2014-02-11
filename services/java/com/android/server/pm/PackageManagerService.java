@@ -1301,6 +1301,11 @@ public class PackageManagerService extends IPackageManager.Stub {
 
             // Collect all vendor packages.
             File vendorAppDir = new File("/vendor/app");
+            try {
+                vendorAppDir = vendorAppDir.getCanonicalFile();
+            } catch (IOException e) {
+                // failed to look up canonical path, continue with original one
+            }
             mVendorInstallObserver = new AppDirObserver(
                 vendorAppDir.getPath(), OBSERVER_EVENTS, true, false);
             mVendorInstallObserver.startWatching();
@@ -3999,7 +4004,7 @@ public class PackageManagerService extends IPackageManager.Stub {
         for (int user : users) {
             if (user != 0) {
                 res = mInstaller.createUserData(packageName,
-                        UserHandle.getUid(user, uid), user);
+                        UserHandle.getUid(user, uid), user, seinfo);
                 if (res < 0) {
                     return res;
                 }

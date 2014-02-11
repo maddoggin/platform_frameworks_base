@@ -93,9 +93,10 @@ import com.android.internal.os.BinderInternal;
 import com.android.internal.os.RuntimeInit;
 import com.android.internal.os.SamplingProfilerIntegration;
 import com.android.internal.util.FastPrintWriter;
-import com.android.internal.util.Objects;
 import com.android.org.conscrypt.OpenSSLSocketImpl;
 import com.google.android.collect.Lists;
+
+import dalvik.system.VMRuntime;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -109,6 +110,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 
@@ -117,6 +119,7 @@ import libcore.io.EventLogger;
 import libcore.io.IoUtils;
 
 import dalvik.system.CloseGuard;
+import dalvik.system.VMRuntime;
 
 final class RemoteServiceException extends AndroidRuntimeException {
     public RemoteServiceException(String msg) {
@@ -221,7 +224,7 @@ public final class ActivityThread {
         public boolean equals(Object o) {
             if (o instanceof ProviderKey) {
                 final ProviderKey other = (ProviderKey) o;
-                return Objects.equal(authority, other.authority) && userId == other.userId;
+                return Objects.equals(authority, other.authority) && userId == other.userId;
             }
             return false;
         }
@@ -739,6 +742,9 @@ public final class ActivityThread {
 
             setCoreSettings(coreSettings);
 
+            // Tell the VMRuntime about the application.
+            VMRuntime.registerAppInfo(appInfo.dataDir, appInfo.processName);
+
             AppBindData data = new AppBindData();
             data.processName = processName;
             data.appInfo = appInfo;
@@ -1068,8 +1074,15 @@ public final class ActivityThread {
             synchronized (this) {
                 if (mLastProcessState != processState) {
                     mLastProcessState = processState;
-
-                    // Update Dalvik state here based on ActivityManager.PROCESS_STATE_* constants.
+                    // Update Dalvik state based on ActivityManager.PROCESS_STATE_* constants.
+                    final int DALVIK_PROCESS_STATE_JANK_PERCEPTIBLE = 0;
+                    final int DALVIK_PROCESS_STATE_JANK_IMPERCEPTIBLE = 1;
+                    int dalvikProcessState = DALVIK_PROCESS_STATE_JANK_IMPERCEPTIBLE;
+                    // TODO: Tune this since things like gmail sync are important background but not jank perceptible.
+                    if (processState <= ActivityManager.PROCESS_STATE_IMPORTANT_FOREGROUND) {
+                        dalvikProcessState = DALVIK_PROCESS_STATE_JANK_PERCEPTIBLE;
+                    }
+                    VMRuntime.getRuntime().updateProcessState(dalvikProcessState);
                     if (false) {
                         Slog.i(TAG, "******************* PROCESS STATE CHANGED TO: " + processState
                                 + (fromIpc ? " (from ipc": ""));
