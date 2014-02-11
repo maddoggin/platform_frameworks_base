@@ -3194,8 +3194,15 @@ public class WindowManagerService extends IWindowManager.Stub
         // is running.
         if (okToDisplay()) {
             DisplayInfo displayInfo = getDefaultDisplayInfoLocked();
-            final int width = displayInfo.appWidth;
-            final int height = displayInfo.appHeight;
+            final int width;
+            final int height;
+            if (mPolicy.isImmersiveMode(mLastStatusBarVisibility)) {
+                width = displayInfo.logicalWidth;
+                height = displayInfo.logicalHeight;
+            } else {
+                width = displayInfo.appWidth;
+                height = displayInfo.appHeight;
+            }
             if (DEBUG_APP_TRANSITIONS || DEBUG_ANIM) Slog.v(TAG, "applyAnimation: atoken="
                     + atoken);
             Animation a = mAppTransition.loadAnimation(lp, transit, enter, width, height);
@@ -3444,7 +3451,8 @@ public class WindowManagerService extends IWindowManager.Stub
             atoken.appFullscreen = fullscreen;
             atoken.showWhenLocked = showWhenLocked;
             atoken.requestedOrientation = requestedOrientation;
-            atoken.configChanges = configChanges;
+            atoken.layoutConfigChanges = (configChanges &
+                    (ActivityInfo.CONFIG_SCREEN_SIZE | ActivityInfo.CONFIG_ORIENTATION)) != 0;
             if (DEBUG_TOKEN_MOVEMENT || DEBUG_ADD_REMOVE) Slog.v(TAG, "addAppToken: " + atoken
                     + " to stack=" + stackId + " task=" + taskId + " at " + addPos);
 
@@ -5187,7 +5195,25 @@ public class WindowManagerService extends IWindowManager.Stub
         ShutdownThread.rebootSafeMode(mContext, confirm);
     }
 
+    // Called by window manager policy.  Not exposed externally.
     @Override
+    public void reboot(boolean confirm) {
+        reboot(null, confirm);
+    }
+
+    // Called by window manager policy.  Not exposed externally.
+    @Override
+    public void reboot(String reason, boolean confirm) {
+        ShutdownThread.reboot(mContext, reason, confirm);
+    }
+
+
+    // Called by window manager policy.  Not exposed externally.
+    @Override
+    public void rebootTile() {
+        ShutdownThread.reboot(mContext, null, true);
+    }
+
     public void setInputFilter(IInputFilter filter) {
         if (!checkCallingPermission(android.Manifest.permission.FILTER_EVENTS, "setInputFilter()")) {
             throw new SecurityException("Requires FILTER_EVENTS permission");
@@ -5198,12 +5224,6 @@ public class WindowManagerService extends IWindowManager.Stub
     @Override
     public void setTouchExplorationEnabled(boolean enabled) {
         mPolicy.setTouchExplorationEnabled(enabled);
-    }
-
-    // Called by window manager policy.  Not exposed externally.
-    @Override
-    public void reboot() {
-        ShutdownThread.reboot(getUiContext(), null, true);
     }
 
     public void setCurrentUser(final int newUserId) {
@@ -8274,10 +8294,9 @@ public class WindowManagerService extends IWindowManager.Stub
             // windows, since that means "perform layout as normal,
             // just don't display").
             if (!gone || !win.mHaveFrame || win.mLayoutNeeded
-                    || win.isConfigChanged() && (win.mAttrs.type == TYPE_KEYGUARD ||
-                            (win.mAppToken != null && (win.mAppToken.configChanges &
-                            (ActivityInfo.CONFIG_SCREEN_SIZE | ActivityInfo.CONFIG_ORIENTATION))
-                                    != 0))
+                    || ((win.isConfigChanged() || win.setInsetsChanged()) &&
+                            (win.mAttrs.type == TYPE_KEYGUARD ||
+                            win.mAppToken != null && win.mAppToken.layoutConfigChanges))
                     || win.mAttrs.type == TYPE_UNIVERSE_BACKGROUND) {
                 if (!win.mLayoutAttached) {
                     if (initial) {
@@ -8633,8 +8652,17 @@ public class WindowManagerService extends IWindowManager.Stub
                     drawSurface.release();
                     appAnimator.thumbnailLayer = topOpeningLayer;
                     DisplayInfo displayInfo = getDefaultDisplayInfoLocked();
+                    final int width;
+                    final int height;
+                    if (mPolicy.isImmersiveMode(mLastStatusBarVisibility)) {
+                        width = displayInfo.logicalWidth;
+                        height = displayInfo.logicalHeight;
+                    } else {
+                        width = displayInfo.appWidth;
+                        height = displayInfo.appHeight;
+                    }
                     Animation anim = mAppTransition.createThumbnailAnimationLocked(
-                            transit, true, true, displayInfo.appWidth, displayInfo.appHeight);
+                            transit, true, true, width, height);
                     appAnimator.thumbnailAnimation = anim;
                     anim.restrictDuration(MAX_ANIMATION_DURATION);
                     anim.scaleCurrentDuration(mTransitionAnimationScale);
@@ -8711,12 +8739,7 @@ public class WindowManagerService extends IWindowManager.Stub
     private void updateResizingWindows(final WindowState w) {
         final WindowStateAnimator winAnimator = w.mWinAnimator;
         if (w.mHasSurface && w.mLayoutSeq == mLayoutSeq) {
-            w.mOverscanInsetsChanged |=
-                    !w.mLastOverscanInsets.equals(w.mOverscanInsets);
-            w.mContentInsetsChanged |=
-                    !w.mLastContentInsets.equals(w.mContentInsets);
-            w.mVisibleInsetsChanged |=
-                    !w.mLastVisibleInsets.equals(w.mVisibleInsets);
+            w.setInsetsChanged();
             boolean configChanged = w.isConfigChanged();
             if (DEBUG_CONFIGURATION && configChanged) {
                 Slog.v(TAG, "Win " + w + " config changed: "

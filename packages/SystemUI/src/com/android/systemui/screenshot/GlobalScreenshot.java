@@ -57,7 +57,7 @@ import android.view.animation.Interpolator;
 import android.widget.ImageView;
 
 import com.android.systemui.R;
-import com.android.systemui.screenshot.TrashScreenshot;
+import com.android.systemui.screenshot.DeleteScreenshot;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -230,21 +230,23 @@ class SaveImageInBackgroundTask extends AsyncTask<SaveImageInBackgroundData, Voi
             mNotificationBuilder.addAction(R.drawable.ic_menu_share,
                      r.getString(com.android.internal.R.string.share),
                      PendingIntent.getActivity(context, 0, chooserIntent,
-                             PendingIntent.FLAG_CANCEL_CURRENT));
+                     PendingIntent.FLAG_CANCEL_CURRENT));
 
-            Intent trashIntent = new Intent();
-            trashIntent.setClass(context, TrashScreenshot.class);
-            trashIntent.putExtra(TrashScreenshot.SCREENSHOT_URI, uri.toString());
+            // ScreenShot QuickDelete starts here
+            Intent deleteIntent = new Intent();
+            deleteIntent.setClass(context, DeleteScreenshot.class);
+            deleteIntent.putExtra(DeleteScreenshot.SCREENSHOT_URI, uri.toString());
 
-            mNotificationBuilder.addAction(android.R.drawable.ic_menu_delete,
-                     r.getString(com.android.internal.R.string.delete),
-                     PendingIntent.getBroadcast(context, 0, trashIntent,
-                        PendingIntent.FLAG_CANCEL_CURRENT));
+            mNotificationBuilder.addAction(R.drawable.ic_menu_delete,
+                     r.getString(R.string.screenshot_delete_action),
+                     PendingIntent.getBroadcast(context, 0, deleteIntent,
+                     PendingIntent.FLAG_CANCEL_CURRENT));
 
             OutputStream out = resolver.openOutputStream(uri);
             image.compress(Bitmap.CompressFormat.PNG, 100, out);
             out.flush();
             out.close();
+            // Ends Here
 
             // update file size in the database
             values.clear();
@@ -466,20 +468,23 @@ class GlobalScreenshot {
             return;
         }
 
+        Bitmap ss = Bitmap.createBitmap(mDisplayMetrics.widthPixels,
+                mDisplayMetrics.heightPixels, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(ss);
+
         if (requiresRotation) {
             // Rotate the screenshot to the current orientation
-            Bitmap ss = Bitmap.createBitmap(mDisplayMetrics.widthPixels,
-                    mDisplayMetrics.heightPixels, Bitmap.Config.ARGB_8888);
-            Canvas c = new Canvas(ss);
             c.translate(ss.getWidth() / 2, ss.getHeight() / 2);
             c.rotate(degrees);
             c.translate(-dims[0] / 2, -dims[1] / 2);
-            c.drawBitmap(mScreenBitmap, 0, 0, null);
-            c.setBitmap(null);
-            // Recycle the previous bitmap
-            mScreenBitmap.recycle();
-            mScreenBitmap = ss;
         }
+
+        c.drawBitmap(mScreenBitmap, 0, 0, null);
+        c.setBitmap(null);
+
+        // Recycle the previous bitmap
+        mScreenBitmap.recycle();
+        mScreenBitmap = ss;
 
         // Optimizations
         mScreenBitmap.setHasAlpha(false);

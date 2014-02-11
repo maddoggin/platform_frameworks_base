@@ -1,5 +1,7 @@
 /*
  *
+ * This code has been modified. Portions copyright (C) 2013, ParanoidAndroid Project.
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -293,6 +295,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     int mLongPressOnPowerBehavior = -1;
     boolean mScreenOnEarly = false;
     boolean mScreenOnFully = false;
+    int mScreenOffReason;
     boolean mOrientationSensorEnabled = false;
     int mCurrentAppOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
     boolean mHasSoftInput = false;
@@ -371,8 +374,13 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     // What we last reported to system UI about whether the compatibility
     // menu needs to be displayed.
     boolean mLastFocusNeedsMenu = false;
+<<<<<<< HEAD
     // Force immersive mode
     boolean mForceImmersiveMode = false;
+=======
+    // Immersive mode(s)
+    int mImmersiveModeStyle = 0;
+>>>>>>> md/kitkat-master
 
     FakeWindow mHideNavFakeWindow = null;
 
@@ -457,6 +465,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     private boolean mVolumeUpKeyTriggered;
     private boolean mPowerKeyTriggered;
     private long mPowerKeyTime;
+    private boolean mVolumeWakeScreen;
+    private boolean mIsLongPress;
 
     /* The number of steps between min and max brightness */
     private static final int BRIGHTNESS_STEPS = 10;
@@ -479,6 +489,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     private static final int MSG_DISABLE_POINTER_LOCATION = 2;
     private static final int MSG_DISPATCH_MEDIA_KEY_WITH_WAKE_LOCK = 3;
     private static final int MSG_DISPATCH_MEDIA_KEY_REPEAT_WITH_WAKE_LOCK = 4;
+    private static final int MSG_DISPATCH_VOLKEY_WITH_WAKE_LOCK = 5;
 
     private class PolicyHandler extends Handler {
         @Override
@@ -496,6 +507,12 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 case MSG_DISPATCH_MEDIA_KEY_REPEAT_WITH_WAKE_LOCK:
                     dispatchMediaKeyRepeatWithWakeLock((KeyEvent)msg.obj);
                     break;
+                case MSG_DISPATCH_VOLKEY_WITH_WAKE_LOCK:
+                    mIsLongPress = true;
+                    dispatchMediaKeyWithWakeLockToAudioService((KeyEvent)msg.obj);
+                    dispatchMediaKeyWithWakeLockToAudioService(
+                        KeyEvent.changeAction((KeyEvent)msg.obj, KeyEvent.ACTION_UP));
+                    break;
             }
         }
     }
@@ -506,6 +523,39 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             setHdmiPlugged("1".equals(event.get("SWITCH_STATE")));
         }
     };
+
+    // Sleep tile long action receiver
+    PowerMenuReceiver mPowerMenuReceiver;
+    class PowerMenuReceiver extends BroadcastReceiver {
+        private boolean mIsRegistered = false;
+
+       public PowerMenuReceiver(Context context) {
+        }
+        @Override
+        public void onReceive(Context context, Intent intent) {
+           final String action = intent.getAction();
+            if (action.equals(Intent.ACTION_POWERMENU)) {
+                showGlobalActionsDialog();
+            }
+        }
+
+        private void registerSelf() {
+            if (!mIsRegistered) {
+                mIsRegistered = true;
+
+                IntentFilter filter = new IntentFilter();
+                filter.addAction(Intent.ACTION_POWERMENU);
+                mContext.registerReceiver(mPowerMenuReceiver, filter);
+            }
+        }
+
+        private void unregisterSelf() {
+            if (mIsRegistered) {
+                mIsRegistered = false;
+                mContext.unregisterReceiver(this);
+            }
+        }
+    }
 
     class SettingsObserver extends ContentObserver {
         SettingsObserver(Handler handler) {
@@ -540,7 +590,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     Settings.Secure.IMMERSIVE_MODE_CONFIRMATIONS), false, this,
                     UserHandle.USER_ALL);
             resolver.registerContentObserver(Settings.System.getUriFor(
+<<<<<<< HEAD
                     Settings.System.IMMERSIVE_MODE), false, this,
+=======
+                    Settings.System.VOLUME_WAKE_SCREEN), false, this,
+>>>>>>> md/kitkat-master
                     UserHandle.USER_ALL);
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.IMMERSIVE_MODE), false, this,
@@ -995,6 +1049,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         } else {
             screenTurnedOff(WindowManagerPolicy.OFF_BECAUSE_OF_USER);
         }
+
+        mPowerMenuReceiver = new PowerMenuReceiver(context);
+        mPowerMenuReceiver.registerSelf();
     }
 
     /**
@@ -1144,6 +1201,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     Settings.Secure.INCALL_POWER_BUTTON_BEHAVIOR,
                     Settings.Secure.INCALL_POWER_BUTTON_BEHAVIOR_DEFAULT,
                     UserHandle.USER_CURRENT);
+            mImmersiveModeStyle = Settings.System.getIntForUser(resolver,
+                    Settings.System.IMMERSIVE_MODE, 0, UserHandle.USER_CURRENT);
 
             // Configure rotation lock.
             int userRotation = Settings.System.getIntForUser(resolver,
@@ -1162,6 +1221,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 updateRotation = true;
                 updateOrientationListenerLp();
             }
+
+            mVolumeWakeScreen = Settings.System.getIntForUser(resolver,
+                    Settings.System.VOLUME_WAKE_SCREEN, 0, UserHandle.USER_CURRENT) != 0;
 
             if (mSystemReady) {
                 int pointerLocation = Settings.System.getIntForUser(resolver,
@@ -2582,6 +2644,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     public int adjustSystemUiVisibilityLw(int visibility) {
         mStatusBarController.adjustSystemUiVisibilityLw(mLastSystemUiFlags, visibility);
         mNavigationBarController.adjustSystemUiVisibilityLw(mLastSystemUiFlags, visibility);
+        updateSystemUiVisibilityLw(); // Thanks @David96 for this catch.
 
         // Reset any bits in mForceClearingStatusBarVisibility that
         // are now clear.
@@ -2594,8 +2657,13 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
     @Override
     public void getContentInsetHintLw(WindowManager.LayoutParams attrs, Rect contentInset) {
+<<<<<<< HEAD
         final int fl = updateWindowManagerVisibilityFlagsForImmersive(attrs.flags);
         final int systemUiVisibility = updateSystemUiVisibilityFlagsForImmersive(
+=======
+        final int fl = updateWindowManagerVisibilityFlagsForImmersiveModes(attrs.flags);
+        final int systemUiVisibility = updateSystemUiVisibilityFlagsForImmersiveModes(
+>>>>>>> md/kitkat-master
                 attrs.systemUiVisibility|attrs.subtreeSystemUiVisibility);
 
         if ((fl & (FLAG_LAYOUT_IN_SCREEN | FLAG_LAYOUT_INSET_DECOR))
@@ -2758,11 +2826,19 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     int top = displayHeight - overscanBottom - mNavigationBarHeightForRotation[displayRotation];
                     mTmpNavigationFrame.set(0, top, displayWidth, displayHeight - overscanBottom);
                     mStableBottom = mTmpNavigationFrame.top;
+<<<<<<< HEAD
                     if (!mForceImmersiveMode) {
                         mStableFullscreenBottom = mTmpNavigationFrame.top;
                     }
                     if (transientNavBarShowing
                             || (navVisible && mForceImmersiveMode)) {
+=======
+                    if (!immersiveModeHidesNavigationBar()) {
+                        mStableFullscreenBottom = mTmpNavigationFrame.top;
+                    }
+                    if (transientNavBarShowing
+                            || (navVisible && immersiveModeHidesNavigationBar())) {
+>>>>>>> md/kitkat-master
                         mNavigationBarController.setBarShowingLw(true);
                     } else if (navVisible) {
                         mNavigationBarController.setBarShowingLw(true);
@@ -2785,11 +2861,19 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     int left = displayWidth - overscanRight - mNavigationBarWidthForRotation[displayRotation];
                     mTmpNavigationFrame.set(left, 0, displayWidth - overscanRight, displayHeight);
                     mStableRight = mTmpNavigationFrame.left;
+<<<<<<< HEAD
                     if (!mForceImmersiveMode) {
                         mStableFullscreenRight = mTmpNavigationFrame.left;
                     }
                     if (transientNavBarShowing
                             || (navVisible && mForceImmersiveMode)) {
+=======
+                    if (!immersiveModeHidesNavigationBar()) {
+                        mStableFullscreenRight = mTmpNavigationFrame.left;
+                    }
+                    if (transientNavBarShowing
+                            || (navVisible && immersiveModeHidesNavigationBar())) {
+>>>>>>> md/kitkat-master
                         mNavigationBarController.setBarShowingLw(true);
                     } else if (navVisible) {
                         mNavigationBarController.setBarShowingLw(true);
@@ -2854,7 +2938,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 // If the status bar is hidden, we don't want to cause
                 // windows behind it to scroll.
                 if (mStatusBar.isVisibleLw()
+<<<<<<< HEAD
                         && !statusBarTransient && !mForceImmersiveMode) {
+=======
+                        && !statusBarTransient && !immersiveModeHidesStatusBar()) {
+>>>>>>> md/kitkat-master
                     // Status bar may go away, so the screen area it occupies
                     // is available to apps but just covering them when the
                     // status bar is visible.
@@ -2875,7 +2963,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 if (mStatusBar.isVisibleLw() && !mStatusBar.isAnimatingLw()
                         && !statusBarTransient && !statusBarTranslucent
                         && !mStatusBarController.wasRecentlyTranslucent()
+<<<<<<< HEAD
                         && !mForceImmersiveMode) {
+=======
+                        && !immersiveModeHidesStatusBar()) {
+>>>>>>> md/kitkat-master
                     // If the opaque status bar is currently requested to be visible,
                     // and not in the process of animating on or off, then
                     // we can tell the app that it is covered by it.
@@ -2954,7 +3046,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     }
 
     private void applyStableConstraints(int sysui, int fl, Rect r) {
+<<<<<<< HEAD
         fl = updateWindowManagerVisibilityFlagsForImmersive(fl);
+=======
+        fl = updateWindowManagerVisibilityFlagsForImmersiveModes(fl);
+>>>>>>> md/kitkat-master
         if ((sysui & View.SYSTEM_UI_FLAG_LAYOUT_STABLE) != 0) {
             // If app is requesting a stable layout, don't let the
             // content insets go below the stable values.
@@ -2990,7 +3086,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
         final int fl = attrs.flags;
         final int sim = attrs.softInputMode;
+<<<<<<< HEAD
         final int sysUiFl = updateSystemUiVisibilityFlagsForImmersive(win.getSystemUiVisibility());
+=======
+        final int sysUiFl = updateSystemUiVisibilityFlagsForImmersiveModes(win.getSystemUiVisibility());
+>>>>>>> md/kitkat-master
 
         final Rect pf = mTmpParentFrame;
         final Rect df = mTmpDisplayFrame;
@@ -3363,21 +3463,46 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         }
     }
 
+<<<<<<< HEAD
     private int updateSystemUiVisibilityFlagsForImmersive(int vis) {
         if (mForceImmersiveMode) {
             vis |= View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                     | View.SYSTEM_UI_FLAG_FULLSCREEN;
+=======
+    private int updateSystemUiVisibilityFlagsForImmersiveModes(int vis) {
+        if (immersiveModeHidesNavigationBar()) {
+            vis |= View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+        }
+        if (immersiveModeHidesStatusBar()) {
+            vis |= View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN;
+>>>>>>> md/kitkat-master
         }
         return vis;
     }
 
+<<<<<<< HEAD
     private int updateWindowManagerVisibilityFlagsForImmersive(int vis) {
         if (mForceImmersiveMode) {
+=======
+    private int updateWindowManagerVisibilityFlagsForImmersiveModes(int vis) {
+        if (mImmersiveModeStyle != 0) {
+>>>>>>> md/kitkat-master
             vis |= FLAG_FULLSCREEN;
         }
         return vis;
     }
 
+<<<<<<< HEAD
+=======
+    private boolean immersiveModeHidesNavigationBar() {
+        return mImmersiveModeStyle == 1 || mImmersiveModeStyle == 2;
+    }
+
+    private boolean immersiveModeHidesStatusBar() {
+        return mImmersiveModeStyle == 1 || mImmersiveModeStyle == 3;
+    }
+
+>>>>>>> md/kitkat-master
     private void offsetInputMethodWindowLw(WindowState win) {
         int top = win.getContentFrameLw().top;
         top += win.getGivenContentInsetsLw().top;
@@ -3502,7 +3627,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     + " forcefkg=" + mForceStatusBarFromKeyguard
                     + " top=" + mTopFullscreenOpaqueWindowState);
             if ((mForceStatusBar || mForceStatusBarFromKeyguard)
+<<<<<<< HEAD
                     && !mForceImmersiveMode) {
+=======
+                    && !immersiveModeHidesStatusBar()) {
+>>>>>>> md/kitkat-master
                 if (DEBUG_LAYOUT) Slog.v(TAG, "Showing status bar: forced");
                 if (mStatusBarController.setBarShowingLw(true)) {
                     changes |= FINISH_LAYOUT_REDO_LAYOUT;
@@ -3838,7 +3967,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
         final boolean down = event.getAction() == KeyEvent.ACTION_DOWN;
         final boolean canceled = event.isCanceled();
-        final int keyCode = event.getKeyCode();
+        int keyCode = event.getKeyCode();
 
         final boolean isInjected = (policyFlags & WindowManagerPolicy.FLAG_INJECTED) != 0;
 
@@ -3854,8 +3983,20 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         if (keyCode == KeyEvent.KEYCODE_POWER) {
             policyFlags |= WindowManagerPolicy.FLAG_WAKE;
         }
-        final boolean isWakeKey = (policyFlags & (WindowManagerPolicy.FLAG_WAKE
-                | WindowManagerPolicy.FLAG_WAKE_DROPPED)) != 0;
+
+        // no volume wake handling if screen off because of proxy sensor
+        final boolean isOffByProx =
+            (mScreenOffReason == WindowManagerPolicy.OFF_BECAUSE_OF_PROX_SENSOR);
+
+        final boolean isVolumeWakeKey = !isScreenOn
+            && mVolumeWakeScreen
+            && !isOffByProx
+            && (keyCode == KeyEvent.KEYCODE_VOLUME_UP
+            || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN);
+
+        final boolean isWakeKey = (policyFlags
+            & (WindowManagerPolicy.FLAG_WAKE | WindowManagerPolicy.FLAG_WAKE_DROPPED)) != 0
+            || isVolumeWakeKey;
 
         if (DEBUG_INPUT) {
             Log.d(TAG, "interceptKeyTq keycode=" + keyCode
@@ -3886,7 +4027,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             // to wake the device but don't pass the key to the application.
             result = 0;
             if (down && isWakeKey && isWakeKeyWhenScreenOff(keyCode)) {
-                result |= ACTION_WAKE_UP;
+                if ((keyCode != KeyEvent.KEYCODE_VOLUME_UP) && (keyCode != KeyEvent.KEYCODE_VOLUME_DOWN)) {
+                    // Wake the device.
+                    result |= ACTION_WAKE_UP;
+                }
             }
         }
 
@@ -3898,6 +4042,35 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
         // Handle special keys.
         switch (keyCode) {
+            case KeyEvent.KEYCODE_ENDCALL: {
+                result &= ~ACTION_PASS_TO_USER;
+                if (down) {
+                    ITelephony telephonyService = getTelephonyService();
+                    boolean hungUp = false;
+                    if (telephonyService != null) {
+                        try {
+                            hungUp = telephonyService.endCall();
+                        } catch (RemoteException ex) {
+                            Log.w(TAG, "ITelephony threw RemoteException", ex);
+                        }
+                    }
+                    interceptPowerKeyDown(!isScreenOn || hungUp);
+                } else {
+                    if (interceptPowerKeyUp(canceled)) {
+                        if ((mEndcallBehavior
+                                & Settings.System.END_BUTTON_BEHAVIOR_HOME) != 0) {
+                            if (goHome()) {
+                                break;
+                            }
+                        }
+                        if ((mEndcallBehavior
+                                & Settings.System.END_BUTTON_BEHAVIOR_SLEEP) != 0) {
+                            result = (result & ~ACTION_WAKE_UP) | ACTION_GO_TO_SLEEP;
+                        }
+                    }
+                }
+                break;
+            }
             case KeyEvent.KEYCODE_VOLUME_DOWN:
             case KeyEvent.KEYCODE_VOLUME_UP:
             case KeyEvent.KEYCODE_VOLUME_MUTE: {
@@ -3962,52 +4135,48 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                             Log.w(TAG, "ITelephony threw RemoteException", ex);
                         }
                     }
-
-                    if (isMusicActive() && (result & ACTION_PASS_TO_USER) == 0) {
-                        // If music is playing but we decided not to pass the key to the
-                        // application, handle the volume change here.
-                        handleVolumeKey(AudioManager.STREAM_MUSIC, keyCode);
-                        break;
-                    }
                 }
-                break;
-            }
-
-            case KeyEvent.KEYCODE_ENDCALL: {
-                result &= ~ACTION_PASS_TO_USER;
-                if (down) {
-                    ITelephony telephonyService = getTelephonyService();
-                    boolean hungUp = false;
-                    if (telephonyService != null) {
-                        try {
-                            hungUp = telephonyService.endCall();
-                        } catch (RemoteException ex) {
-                            Log.w(TAG, "ITelephony threw RemoteException", ex);
-                        }
-                    }
-                    interceptPowerKeyDown(!isScreenOn || hungUp);
-                } else {
-                    if (interceptPowerKeyUp(canceled)) {
-                        if ((mEndcallBehavior
-                                & Settings.System.END_BUTTON_BEHAVIOR_HOME) != 0) {
-                            if (goHome()) {
+                if (isMusicActive() && (result & ACTION_PASS_TO_USER) == 0) {
+                    if (down && (keyCode != KeyEvent.KEYCODE_VOLUME_MUTE)) {
+                        mIsLongPress = false;
+                        int newKeyCode = event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP ?
+                                KeyEvent.KEYCODE_MEDIA_NEXT : KeyEvent.KEYCODE_MEDIA_PREVIOUS;
+                        Message msg = mHandler.obtainMessage(MSG_DISPATCH_VOLKEY_WITH_WAKE_LOCK,
+                                new KeyEvent(event.getDownTime(), event.getEventTime(),
+                                    event.getAction(), newKeyCode, 0));
+                        msg.setAsynchronous(true);
+                        mHandler.sendMessageDelayed(msg, ViewConfiguration.getLongPressTimeout());
+                        break;
+                    } else {
+                        if (!down) {
+                            mHandler.removeMessages(MSG_DISPATCH_VOLKEY_WITH_WAKE_LOCK);
+                            if (mIsLongPress) {
                                 break;
                             }
                         }
-                        if ((mEndcallBehavior
-                                & Settings.System.END_BUTTON_BEHAVIOR_SLEEP) != 0) {
-                            result = (result & ~ACTION_WAKE_UP) | ACTION_GO_TO_SLEEP;
+                        if (!isScreenOn && !mVolumeWakeScreen) {
+                            handleVolumeKey(AudioManager.STREAM_MUSIC, keyCode);
                         }
                     }
                 }
-                break;
+                if (isScreenOn || !mVolumeWakeScreen) {
+                    break;
+                } else if (keyguardActive) {
+                    keyCode = KeyEvent.KEYCODE_POWER;
+                    mPowerManager.wakeUp(SystemClock.uptimeMillis());
+                } else {
+                    result |= ACTION_WAKE_UP;
+                    break;
+                }
             }
 
             case KeyEvent.KEYCODE_POWER: {
                 result &= ~ACTION_PASS_TO_USER;
                 if (down) {
-                    mImmersiveModeConfirmation.onPowerKeyDown(isScreenOn, event.getDownTime(),
-                            isImmersiveMode(mLastSystemUiFlags));
+                    if (mImmersiveModeStyle == 0) {
+                        mImmersiveModeConfirmation.onPowerKeyDown(isScreenOn, event.getDownTime(),
+                                isImmersiveMode(mLastSystemUiFlags));
+                    }
                     if (isScreenOn && !mPowerKeyTriggered
                             && (event.getFlags() & KeyEvent.FLAG_FALLBACK) == 0) {
                         mPowerKeyTriggered = true;
@@ -4305,6 +4474,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         synchronized (mLock) {
             updateOrientationListenerLp();
             updateLockScreenTimeout();
+            mScreenOffReason = why;
         }
     }
 
@@ -5128,17 +5298,30 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         int tmpVisibility = win.getSystemUiVisibility()
                 & ~mResettingSystemUiFlags
                 & ~mForceClearedSystemUiFlags;
+<<<<<<< HEAD
         tmpVisibility = updateSystemUiVisibilityFlagsForImmersive(tmpVisibility);
 
         final boolean subWindowInImmersiveMode = mForceImmersiveMode
+=======
+        tmpVisibility = updateSystemUiVisibilityFlagsForImmersiveModes(tmpVisibility);
+
+        final boolean subWindowInImmersiveMode = immersiveModeHidesNavigationBar()
+>>>>>>> md/kitkat-master
                 && (windowType >= WindowManager.LayoutParams.FIRST_SUB_WINDOW
                         && windowType <= WindowManager.LayoutParams.LAST_SUB_WINDOW);
         final boolean wasCleared = mClearedBecauseOfForceShow;
         if (mForcingShowNavBar && (win.getSurfaceLayer() < mForcingShowNavBarLayer
                 || subWindowInImmersiveMode)) {
             int clearableFlags = View.SYSTEM_UI_CLEARABLE_FLAGS;
+<<<<<<< HEAD
             if (mForceImmersiveMode) {
                 clearableFlags &= ~View.SYSTEM_UI_FLAG_FULLSCREEN;
+=======
+            if (immersiveModeHidesStatusBar()) {
+                clearableFlags &= ~View.SYSTEM_UI_FLAG_FULLSCREEN;
+            }
+            if (immersiveModeHidesNavigationBar()) {
+>>>>>>> md/kitkat-master
                 clearableFlags |= View.NAVIGATION_BAR_TRANSLUCENT;
             }
             tmpVisibility &= ~clearableFlags;
@@ -5146,6 +5329,21 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         } else {
             mClearedBecauseOfForceShow = false;
         }
+<<<<<<< HEAD
+=======
+
+        // The window who requested navbar force showing disappeared and next window wants
+        // to hide navbar. Instead of hiding we will make it transient. SystemUI will take care
+        // about hiding after timeout. This should not happen if next window is keyguard because
+        // transient state have more priority than translucent (why?) and cause bad UX
+        if (wasCleared && !mClearedBecauseOfForceShow
+                && (tmpVisibility & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) != 0) {
+            mNavigationBarController.showTransient();
+            tmpVisibility |= View.NAVIGATION_BAR_TRANSIENT;
+            mWindowManagerFuncs.addSystemUIVisibilityFlag(View.NAVIGATION_BAR_TRANSIENT);
+        }
+
+>>>>>>> md/kitkat-master
         int visibility = updateSystemBarsLw(win, mLastSystemUiFlags, tmpVisibility);
         final int diff = visibility ^ mLastSystemUiFlags;
         final boolean needsMenu = win.getNeedsMenuLw(mTopFullscreenOpaqueWindowState);
@@ -5153,12 +5351,16 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 && mFocusedApp == win.getAppToken()) {
             return 0;
         }
+<<<<<<< HEAD
         if (wasCleared && !mClearedBecauseOfForceShow
                 && (visibility & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) != 0) {
             mNavigationBarController.showTransient();
             visibility |= View.NAVIGATION_BAR_TRANSIENT;
             mWindowManagerFuncs.addSystemUIVisibilityFlag(View.NAVIGATION_BAR_TRANSIENT);
         }
+=======
+
+>>>>>>> md/kitkat-master
         final int visibility2 = visibility;
         mLastSystemUiFlags = visibility;
         mLastFocusNeedsMenu = needsMenu;
@@ -5187,8 +5389,15 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 ? mKeyguard
                 : mTopFullscreenOpaqueWindowState;
 
+<<<<<<< HEAD
         if (!mForceImmersiveMode) {
             vis = mStatusBarController.applyTranslucentFlagLw(transWin, vis, oldVis);
+=======
+        if (!immersiveModeHidesStatusBar()) {
+            vis = mStatusBarController.applyTranslucentFlagLw(transWin, vis, oldVis);
+        }
+        if (!immersiveModeHidesNavigationBar()) {
+>>>>>>> md/kitkat-master
             vis = mNavigationBarController.applyTranslucentFlagLw(transWin, vis, oldVis);
         }
 
@@ -5245,8 +5454,15 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         boolean oldImmersiveMode = isImmersiveMode(oldVis);
         boolean newImmersiveMode = isImmersiveMode(vis);
         if (win != null && oldImmersiveMode != newImmersiveMode) {
+<<<<<<< HEAD
             final String pkg = mForceImmersiveMode ? "android" : win.getOwningPackage();
             mImmersiveModeConfirmation.immersiveModeChanged(pkg, newImmersiveMode);
+=======
+            final String pkg = mImmersiveModeStyle != 0 ? "android" + mImmersiveModeStyle
+                    : win.getOwningPackage();
+            mImmersiveModeConfirmation.immersiveModeChanged(pkg, newImmersiveMode,
+                    transientStatusBarAllowed);
+>>>>>>> md/kitkat-master
         }
 
         vis = mNavigationBarController.updateVisibilityLw(transientNavBarAllowed, oldVis, vis);
@@ -5262,7 +5478,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         }
     }
 
-    private boolean isImmersiveMode(int vis) {
+    public boolean isImmersiveMode(int vis) {
         final int flags = View.SYSTEM_UI_FLAG_IMMERSIVE | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
         return mNavigationBar != null
                 && (vis & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) != 0

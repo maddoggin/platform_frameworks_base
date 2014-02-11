@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2012 The Android Open Source Project
+ * This code has been modified. Portions copyright (C) 2014 ParanoidAndroid Project.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,30 +17,82 @@
 
 package com.android.systemui.statusbar.phone;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.View.OnLongClickListener;
 import android.view.ViewParent;
 import android.widget.FrameLayout;
+
+import com.android.systemui.statusbar.phone.QuickSettings.Tile;
 
 /**
  *
  */
 class QuickSettingsTileView extends FrameLayout {
     private static final String TAG = "QuickSettingsTileView";
+    private static final String HOVER_COLOR_WHITE = "#3FFFFFFF"; // 25% white
+    private static final String HOVER_COLOR_BLACK = "#3F000000"; // 25% black
+
+    private static final float DEFAULT = 1.0f;
+    private static final float ENABLED = 0.95f;
+    private static final float DISABLED = 0.8f;
+    private static final float DISAPPEAR = 0.0f;
+
+    private Tile mTileId;
+
+    private OnClickListener mOnClickListener;
+    private OnLongClickListener mOnLongClickListener;
 
     private int mContentLayoutId;
     private int mColSpan;
+    private int mRowSpan;
+
     private boolean mPrepared;
     private OnPrepareListener mOnPrepareListener;
+
+    private boolean mTemporary;
+    private boolean mEditMode;
+    private boolean mVisible;
 
     public QuickSettingsTileView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         mContentLayoutId = -1;
         mColSpan = 1;
+        mRowSpan = 1;
+
+        QuickSettingsTouchListener touchListener = new QuickSettingsTouchListener();
+        QuickSettingsDragListener dragListener = new QuickSettingsDragListener();
+        setOnTouchListener(touchListener);
+        setOnDragListener(dragListener);
+    }
+
+    void setTileId(Tile id) {
+        mTileId = id;
+    }
+
+    Tile getTileId() {
+        return mTileId;
+    }
+
+    void setTemporary(boolean temporary) {
+        mTemporary = temporary;
+        if(temporary) { // No listeners needed
+            setOnTouchListener(null);
+            setOnDragListener(null);
+        }
+    }
+
+    boolean isTemporary() {
+        return mTemporary;
     }
 
     void setColumnSpan(int span) {
@@ -62,6 +115,94 @@ class QuickSettingsTileView extends FrameLayout {
         } else {
             Log.e(TAG, "Not reinflating content: No layoutId set");
         }
+    }
+
+    void setHoverEffect(boolean hover) {
+        setHoverEffect(HOVER_COLOR_WHITE, hover);
+    }
+
+    void setHoverEffect(String color, boolean hover) {
+        if(hover) {
+            setForeground(new ColorDrawable(Color.parseColor(color)));
+        } else {
+            setForeground(new ColorDrawable(Color.TRANSPARENT));
+        }
+    }
+
+    void setEditMode(boolean enabled) {
+        mEditMode = enabled;
+        mVisible = getVisibility() == View.VISIBLE
+                && (getScaleY() >= ENABLED || getScaleX() >= ENABLED);
+        if(!isTemporary() && enabled) {
+            setVisibility(View.VISIBLE);
+            setHoverEffect(HOVER_COLOR_BLACK, !mVisible);
+            float scale = mVisible ? ENABLED : DISABLED;
+            animate().scaleX(scale).scaleY(scale).setListener(null);
+            setEditModeClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    toggleVisibility();
+                }
+            });
+            setEditModeLongClickListener(null);
+        } else {
+            boolean temporaryEditMode = isTemporary() && enabled;
+            setOnClickListener(temporaryEditMode ? null : mOnClickListener);
+            setOnLongClickListener(temporaryEditMode ? null : mOnLongClickListener);
+            float scale = temporaryEditMode ? DISAPPEAR : DEFAULT;
+            animate().scaleX(scale).scaleY(scale).setListener(null);
+            if(!mVisible && !isTemporary()) { // Item has been disabled
+                setVisibility(View.GONE);
+            }
+        }
+    }
+
+    boolean isEditModeEnabled() {
+        return mEditMode;
+    }
+
+    void toggleVisibility() {
+        setHoverEffect(HOVER_COLOR_BLACK, mVisible);
+        float scale = mVisible ? DISABLED : ENABLED;
+        animate().scaleX(scale).scaleY(scale)
+                .setListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                mVisible = !mVisible;
+            }
+        });
+    }
+
+    void fadeOut() {
+        animate().alpha(0.05f);
+    }
+
+    void fadeIn() {
+        animate().alpha(1f);
+    }
+
+    void setEditModeClickListener(OnClickListener listener) {
+        super.setOnClickListener(listener);
+    }
+
+    @Override
+    public void setOnClickListener(OnClickListener listener) {
+        if (!isEditModeEnabled()) {
+            mOnClickListener = listener;
+        }
+        super.setOnClickListener(listener);
+    }
+
+    public void setEditModeLongClickListener(OnLongClickListener listener) {
+        super.setOnLongClickListener(listener);
+    }
+
+    @Override
+    public void setOnLongClickListener(OnLongClickListener listener) {
+        if (!isEditModeEnabled()) {
+            mOnLongClickListener = listener;
+        }
+        super.setOnLongClickListener(listener);
     }
 
     @Override
@@ -137,6 +278,7 @@ class QuickSettingsTileView extends FrameLayout {
         }
         return true;
     }
+
 
     /**
      * Called when the view's parent becomes visible or invisible to provide
