@@ -66,7 +66,6 @@ import android.view.WindowManager;
 import android.view.WindowManagerGlobal;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.android.internal.app.MediaRouteDialogPresenter;
 import com.android.systemui.R;
@@ -584,14 +583,7 @@ class QuickSettings {
                         rssiTile.setBackOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                if (mModel.mUsesAospDialer) {
-                                    mModel.toggleMobileNetworkState();
-                                } else {
-                                    collapsePanels();
-                                    Toast.makeText(mContext,
-                                                   R.string.quick_settings_network_toast_disabled,
-                                                   Toast.LENGTH_SHORT).show();
-                                }
+                                mModel.toggleMobileNetworkState();
                             }
                         });
                         rssiTile.setBackOnLongClickListener(new View.OnLongClickListener() {
