@@ -69,7 +69,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.internal.app.MediaRouteDialogPresenter;
-import com.android.internal.util.paranoid.LightbulbConstants;
 import com.android.systemui.R;
 import com.android.systemui.statusbar.phone.QuickSettingsModel.ActivityState;
 import com.android.systemui.statusbar.phone.QuickSettingsModel.BluetoothState;
@@ -506,7 +505,7 @@ class QuickSettings {
                     wifiTile.setBackOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            mModel.toggleWifiApState(wifiTile);
+                            mModel.toggleWifiApState();
                         }
                     });
                     wifiTile.setBackOnLongClickListener(new View.OnLongClickListener() {
