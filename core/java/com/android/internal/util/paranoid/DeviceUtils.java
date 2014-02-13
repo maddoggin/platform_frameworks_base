@@ -76,39 +76,6 @@ public class DeviceUtils {
         return context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS);
     }
 
-    public static boolean deviceSupportsCameraFlash() {
-        Camera camera;
-
-        try {
-            camera = Camera.open();
-        } catch (RuntimeException e) {
-            // camera not available
-            return false;
-        }
-
-        if (camera == null) {
-            return false;
-        }
-
-        Camera.Parameters parameters = camera.getParameters();
-
-        if (parameters.getFlashMode() == null) {
-            camera.release();
-            return false;
-        }
-
-        List<String> supportedFlashModes = parameters.getSupportedFlashModes();
-        if (supportedFlashModes == null
-                || supportedFlashModes.isEmpty() || supportedFlashModes.size() == 1
-                && supportedFlashModes.get(0).equals(Camera.Parameters.FLASH_MODE_OFF)) {
-            camera.release();
-            return false;
-        }
-
-        camera.release();
-        return true;
-    }
-
     private static int getScreenType(Context con) {
         WindowManager wm = (WindowManager)con.getSystemService(Context.WINDOW_SERVICE);
         DisplayInfo outDisplayInfo = new DisplayInfo();
