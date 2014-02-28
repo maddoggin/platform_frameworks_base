@@ -131,7 +131,6 @@ extern int register_android_database_CursorWindow(JNIEnv* env);
 extern int register_android_database_SQLiteConnection(JNIEnv* env);
 extern int register_android_database_SQLiteGlobal(JNIEnv* env);
 extern int register_android_database_SQLiteDebug(JNIEnv* env);
-extern int register_android_debug_JNITest(JNIEnv* env);
 extern int register_android_nio_utils(JNIEnv* env);
 extern int register_android_text_format_Time(JNIEnv* env);
 extern int register_android_os_Debug(JNIEnv* env);
@@ -760,13 +759,6 @@ int AndroidRuntime::startVm(JavaVM** pJavaVM, JNIEnv** pEnv)
         mOptions.add(opt);
     }
 
-    /*
-     * We don't have /tmp on the device, but we often have an SD card.  Apps
-     * shouldn't use this, but some test suites might want to exercise it.
-     */
-    opt.optionString = "-Djava.io.tmpdir=/sdcard";
-    mOptions.add(opt);
-
     initArgs.version = JNI_VERSION_1_4;
     initArgs.options = mOptions.editArray();
     initArgs.nOptions = mOptions.size();
@@ -1100,7 +1092,6 @@ static void register_jam_procs(const RegJAMProc array[], size_t count)
 }
 
 static const RegJNIRec gRegJNI[] = {
-    REG_JNI(register_android_debug_JNITest),
     REG_JNI(register_com_android_internal_os_RuntimeInit),
     REG_JNI(register_android_os_SystemClock),
     REG_JNI(register_android_util_EventLog),
