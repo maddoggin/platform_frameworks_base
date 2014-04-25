@@ -50,24 +50,29 @@
 
 using namespace android;
 
-#define PER_ARRAY_TYPE(flag, fnc, ...) {                                                \
+#define PER_ARRAY_TYPE(flag, fnc, readonly, ...) {                                      \
     jint len = 0;                                                                       \
     void *ptr = NULL;                                                                   \
     size_t typeBytes = 0;                                                               \
+    jint relFlag = 0;                                                                   \
+    if (readonly) {                                                                     \
+        /* The on-release mode should only be JNI_ABORT for read-only accesses. */      \
+        relFlag = JNI_ABORT;                                                            \
+    }                                                                                   \
     switch(dataType) {                                                                  \
     case RS_TYPE_FLOAT_32:                                                              \
         len = _env->GetArrayLength((jfloatArray)data);                                  \
         ptr = _env->GetFloatArrayElements((jfloatArray)data, flag);                     \
         typeBytes = 4;                                                                  \
         fnc(__VA_ARGS__);                                                               \
-        _env->ReleaseFloatArrayElements((jfloatArray)data, (jfloat *)ptr, JNI_ABORT);   \
+        _env->ReleaseFloatArrayElements((jfloatArray)data, (jfloat *)ptr, relFlag);     \
         return;                                                                         \
     case RS_TYPE_FLOAT_64:                                                              \
         len = _env->GetArrayLength((jdoubleArray)data);                                 \
         ptr = _env->GetDoubleArrayElements((jdoubleArray)data, flag);                   \
         typeBytes = 8;                                                                  \
         fnc(__VA_ARGS__);                                                               \
-        _env->ReleaseDoubleArrayElements((jdoubleArray)data, (jdouble *)ptr, JNI_ABORT);\
+        _env->ReleaseDoubleArrayElements((jdoubleArray)data, (jdouble *)ptr, relFlag);  \
         return;                                                                         \
     case RS_TYPE_SIGNED_8:                                                              \
     case RS_TYPE_UNSIGNED_8:                                                            \
@@ -75,7 +80,7 @@ using namespace android;
         ptr = _env->GetByteArrayElements((jbyteArray)data, flag);                       \
         typeBytes = 1;                                                                  \
         fnc(__VA_ARGS__);                                                               \
-        _env->ReleaseByteArrayElements((jbyteArray)data, (jbyte*)ptr, JNI_ABORT);       \
+        _env->ReleaseByteArrayElements((jbyteArray)data, (jbyte*)ptr, relFlag);         \
         return;                                                                         \
     case RS_TYPE_SIGNED_16:                                                             \
     case RS_TYPE_UNSIGNED_16:                                                           \
@@ -83,7 +88,7 @@ using namespace android;
         ptr = _env->GetShortArrayElements((jshortArray)data, flag);                     \
         typeBytes = 2;                                                                  \
         fnc(__VA_ARGS__);                                                               \
-        _env->ReleaseShortArrayElements((jshortArray)data, (jshort *)ptr, JNI_ABORT);   \
+        _env->ReleaseShortArrayElements((jshortArray)data, (jshort *)ptr, relFlag);     \
         return;                                                                         \
     case RS_TYPE_SIGNED_32:                                                             \
     case RS_TYPE_UNSIGNED_32:                                                           \
@@ -91,7 +96,7 @@ using namespace android;
         ptr = _env->GetIntArrayElements((jintArray)data, flag);                         \
         typeBytes = 4;                                                                  \
         fnc(__VA_ARGS__);                                                               \
-        _env->ReleaseIntArrayElements((jintArray)data, (jint *)ptr, JNI_ABORT);         \
+        _env->ReleaseIntArrayElements((jintArray)data, (jint *)ptr, relFlag);           \
         return;                                                                         \
     case RS_TYPE_SIGNED_64:                                                             \
     case RS_TYPE_UNSIGNED_64:                                                           \
@@ -99,7 +104,7 @@ using namespace android;
         ptr = _env->GetLongArrayElements((jlongArray)data, flag);                       \
         typeBytes = 8;                                                                  \
         fnc(__VA_ARGS__);                                                               \
-        _env->ReleaseLongArrayElements((jlongArray)data, (jlong *)ptr, JNI_ABORT);      \
+        _env->ReleaseLongArrayElements((jlongArray)data, (jlong *)ptr, relFlag);        \
         return;                                                                         \
     default:                                                                            \
         break;                                                                          \
@@ -455,7 +460,7 @@ nElementGetNativeData(JNIEnv *_env, jobject _this, jlong con, jlong id, jintArra
     // we will pack mType; mKind; mNormalized; mVectorSize; NumSubElements
     assert(dataSize == 5);
 
-    uint32_t elementData[5];
+    uintptr_t elementData[5];
     rsaElementGetNativeData((RsContext)con, (RsElement)id, elementData, dataSize);
 
     for(jint i = 0; i < dataSize; i ++) {
@@ -476,7 +481,7 @@ nElementGetSubElements(JNIEnv *_env, jobject _this, jlong con, jlong id,
 
     uintptr_t *ids = (uintptr_t*)malloc(dataSize * sizeof(uintptr_t));
     const char **names = (const char **)malloc(dataSize * sizeof(const char *));
-    size_t *arraySizes = (size_t *)malloc(dataSize * sizeof(size_t));
+    uint32_t *arraySizes = (uint32_t *)malloc(dataSize * sizeof(uint32_t));
 
     rsaElementGetSubElements((RsContext)con, (RsElement)id, ids, names, arraySizes, (uint32_t)dataSize);
 
@@ -675,6 +680,7 @@ static void ReleaseBitmapCallback(void *bmp)
 }
 
 
+// Copies from the Java object data into the Allocation pointed to by _alloc.
 static void
 nAllocationData1D(JNIEnv *_env, jobject _this, jlong con, jlong _alloc, jint offset, jint lod,
                   jint count, jobject data, jint sizeBytes, jint dataType)
@@ -682,9 +688,10 @@ nAllocationData1D(JNIEnv *_env, jobject _this, jlong con, jlong _alloc, jint off
     RsAllocation *alloc = (RsAllocation *)_alloc;
     LOG_API("nAllocation1DData, con(%p), adapter(%p), offset(%i), count(%i), sizeBytes(%i), dataType(%i)",
             (RsContext)con, (RsAllocation)alloc, offset, count, sizeBytes, dataType);
-    PER_ARRAY_TYPE(NULL, rsAllocation1DData, (RsContext)con, alloc, offset, lod, count, ptr, sizeBytes);
+    PER_ARRAY_TYPE(NULL, rsAllocation1DData, true, (RsContext)con, alloc, offset, lod, count, ptr, sizeBytes);
 }
 
+// Copies from the Java array data into the Allocation pointed to by alloc.
 static void
 //    native void rsnAllocationElementData1D(long con, long id, int xoff, int compIdx, byte[] d, int sizeBytes);
 nAllocationElementData1D(JNIEnv *_env, jobject _this, jlong con, jlong alloc, jint offset, jint lod, jint compIdx, jbyteArray data, jint sizeBytes)
@@ -696,6 +703,7 @@ nAllocationElementData1D(JNIEnv *_env, jobject _this, jlong con, jlong alloc, ji
     _env->ReleaseByteArrayElements(data, ptr, JNI_ABORT);
 }
 
+// Copies from the Java object data into the Allocation pointed to by _alloc.
 static void
 nAllocationData2D(JNIEnv *_env, jobject _this, jlong con, jlong _alloc, jint xoff, jint yoff, jint lod, jint _face,
                   jint w, jint h, jobject data, jint sizeBytes, jint dataType)
@@ -704,9 +712,11 @@ nAllocationData2D(JNIEnv *_env, jobject _this, jlong con, jlong _alloc, jint xof
     RsAllocationCubemapFace face = (RsAllocationCubemapFace)_face;
     LOG_API("nAllocation2DData, con(%p), adapter(%p), xoff(%i), yoff(%i), w(%i), h(%i), len(%i) type(%i)",
             (RsContext)con, alloc, xoff, yoff, w, h, sizeBytes, dataType);
-    PER_ARRAY_TYPE(NULL, rsAllocation2DData, (RsContext)con, alloc, xoff, yoff, lod, face, w, h, ptr, sizeBytes, 0);
+    PER_ARRAY_TYPE(NULL, rsAllocation2DData, true, (RsContext)con, alloc, xoff, yoff, lod, face, w, h, ptr, sizeBytes, 0);
 }
 
+// Copies from the Allocation pointed to by srcAlloc into the Allocation
+// pointed to by dstAlloc.
 static void
 nAllocationData2D_alloc(JNIEnv *_env, jobject _this, jlong con,
                         jlong dstAlloc, jint dstXoff, jint dstYoff,
@@ -731,6 +741,7 @@ nAllocationData2D_alloc(JNIEnv *_env, jobject _this, jlong con,
                             srcMip, srcFace);
 }
 
+// Copies from the Java object data into the Allocation pointed to by _alloc.
 static void
 nAllocationData3D(JNIEnv *_env, jobject _this, jlong con, jlong _alloc, jint xoff, jint yoff, jint zoff, jint lod,
                     jint w, jint h, jint d, jobject data, int sizeBytes, int dataType)
@@ -738,9 +749,11 @@ nAllocationData3D(JNIEnv *_env, jobject _this, jlong con, jlong _alloc, jint xof
     RsAllocation *alloc = (RsAllocation *)_alloc;
     LOG_API("nAllocation3DData, con(%p), alloc(%p), xoff(%i), yoff(%i), zoff(%i), lod(%i), w(%i), h(%i), d(%i), sizeBytes(%i)",
             (RsContext)con, (RsAllocation)alloc, xoff, yoff, zoff, lod, w, h, d, sizeBytes);
-    PER_ARRAY_TYPE(NULL, rsAllocation3DData, (RsContext)con, alloc, xoff, yoff, zoff, lod, w, h, d, ptr, sizeBytes, 0);
+    PER_ARRAY_TYPE(NULL, rsAllocation3DData, true, (RsContext)con, alloc, xoff, yoff, zoff, lod, w, h, d, ptr, sizeBytes, 0);
 }
 
+// Copies from the Allocation pointed to by srcAlloc into the Allocation
+// pointed to by dstAlloc.
 static void
 nAllocationData3D_alloc(JNIEnv *_env, jobject _this, jlong con,
                         jlong dstAlloc, jint dstXoff, jint dstYoff, jint dstZoff,
@@ -764,14 +777,16 @@ nAllocationData3D_alloc(JNIEnv *_env, jobject _this, jlong con,
 }
 
 
+// Copies from the Allocation pointed to by _alloc into the Java object data.
 static void
 nAllocationRead(JNIEnv *_env, jobject _this, jlong con, jlong _alloc, jobject data, int dataType)
 {
     RsAllocation *alloc = (RsAllocation *)_alloc;
     LOG_API("nAllocationRead, con(%p), alloc(%p)", (RsContext)con, (RsAllocation)alloc);
-    PER_ARRAY_TYPE(0, rsAllocationRead, (RsContext)con, alloc, ptr, len * typeBytes);
+    PER_ARRAY_TYPE(0, rsAllocationRead, false, (RsContext)con, alloc, ptr, len * typeBytes);
 }
 
+// Copies from the Allocation pointed to by _alloc into the Java object data.
 static void
 nAllocationRead1D(JNIEnv *_env, jobject _this, jlong con, jlong _alloc, jint offset, jint lod,
                   jint count, jobject data, int sizeBytes, int dataType)
@@ -779,9 +794,10 @@ nAllocationRead1D(JNIEnv *_env, jobject _this, jlong con, jlong _alloc, jint off
     RsAllocation *alloc = (RsAllocation *)_alloc;
     LOG_API("nAllocation1DRead, con(%p), adapter(%p), offset(%i), count(%i), sizeBytes(%i), dataType(%i)",
             (RsContext)con, alloc, offset, count, sizeBytes, dataType);
-    PER_ARRAY_TYPE(0, rsAllocation1DRead, (RsContext)con, alloc, offset, lod, count, ptr, sizeBytes);
+    PER_ARRAY_TYPE(0, rsAllocation1DRead, false, (RsContext)con, alloc, offset, lod, count, ptr, sizeBytes);
 }
 
+// Copies from the Allocation pointed to by _alloc into the Java object data.
 static void
 nAllocationRead2D(JNIEnv *_env, jobject _this, jlong con, jlong _alloc, jint xoff, jint yoff, jint lod, jint _face,
                   jint w, jint h, jobject data, int sizeBytes, int dataType)
@@ -790,7 +806,7 @@ nAllocationRead2D(JNIEnv *_env, jobject _this, jlong con, jlong _alloc, jint xof
     RsAllocationCubemapFace face = (RsAllocationCubemapFace)_face;
     LOG_API("nAllocation2DRead, con(%p), adapter(%p), xoff(%i), yoff(%i), w(%i), h(%i), len(%i) type(%i)",
             (RsContext)con, alloc, xoff, yoff, w, h, sizeBytes, dataType);
-    PER_ARRAY_TYPE(0, rsAllocation2DRead, (RsContext)con, alloc, xoff, yoff, lod, face, w, h, ptr, sizeBytes, 0);
+    PER_ARRAY_TYPE(0, rsAllocation2DRead, false, (RsContext)con, alloc, xoff, yoff, lod, face, w, h, ptr, sizeBytes, 0);
 }
 
 static jlong
@@ -1026,7 +1042,7 @@ nScriptGetVarV(JNIEnv *_env, jobject _this, jlong con, jlong script, jint slot, 
     jint len = _env->GetArrayLength(data);
     jbyte *ptr = _env->GetByteArrayElements(data, NULL);
     rsScriptGetVarV((RsContext)con, (RsScript)script, slot, ptr, len);
-    _env->ReleaseByteArrayElements(data, ptr, JNI_ABORT);
+    _env->ReleaseByteArrayElements(data, ptr, 0);
 }
 
 static void
@@ -1407,35 +1423,35 @@ nProgramRasterCreate(JNIEnv *_env, jobject _this, jlong con, jboolean pointSprit
 // ---------------------------------------------------------------------------
 
 static void
-nContextBindRootScript(JNIEnv *_env, jobject _this, jlong con, jint script)
+nContextBindRootScript(JNIEnv *_env, jobject _this, jlong con, jlong script)
 {
     LOG_API("nContextBindRootScript, con(%p), script(%p)", (RsContext)con, (RsScript)script);
     rsContextBindRootScript((RsContext)con, (RsScript)script);
 }
 
 static void
-nContextBindProgramStore(JNIEnv *_env, jobject _this, jlong con, jint pfs)
+nContextBindProgramStore(JNIEnv *_env, jobject _this, jlong con, jlong pfs)
 {
     LOG_API("nContextBindProgramStore, con(%p), pfs(%p)", (RsContext)con, (RsProgramStore)pfs);
     rsContextBindProgramStore((RsContext)con, (RsProgramStore)pfs);
 }
 
 static void
-nContextBindProgramFragment(JNIEnv *_env, jobject _this, jlong con, jint pf)
+nContextBindProgramFragment(JNIEnv *_env, jobject _this, jlong con, jlong pf)
 {
     LOG_API("nContextBindProgramFragment, con(%p), pf(%p)", (RsContext)con, (RsProgramFragment)pf);
     rsContextBindProgramFragment((RsContext)con, (RsProgramFragment)pf);
 }
 
 static void
-nContextBindProgramVertex(JNIEnv *_env, jobject _this, jlong con, jint pf)
+nContextBindProgramVertex(JNIEnv *_env, jobject _this, jlong con, jlong pf)
 {
     LOG_API("nContextBindProgramVertex, con(%p), pf(%p)", (RsContext)con, (RsProgramVertex)pf);
     rsContextBindProgramVertex((RsContext)con, (RsProgramVertex)pf);
 }
 
 static void
-nContextBindProgramRaster(JNIEnv *_env, jobject _this, jlong con, jint pf)
+nContextBindProgramRaster(JNIEnv *_env, jobject _this, jlong con, jlong pf)
 {
     LOG_API("nContextBindProgramRaster, con(%p), pf(%p)", (RsContext)con, (RsProgramRaster)pf);
     rsContextBindProgramRaster((RsContext)con, (RsProgramRaster)pf);
@@ -1679,11 +1695,11 @@ static JNINativeMethod methods[] = {
 {"rsnProgramRasterCreate",           "(JZI)J",                                (void*)nProgramRasterCreate },
 {"rsnProgramVertexCreate",           "(JLjava/lang/String;[Ljava/lang/String;[J)J",              (void*)nProgramVertexCreate },
 
-{"rsnContextBindRootScript",         "(JI)V",                                 (void*)nContextBindRootScript },
-{"rsnContextBindProgramStore",       "(JI)V",                                 (void*)nContextBindProgramStore },
-{"rsnContextBindProgramFragment",    "(JI)V",                                 (void*)nContextBindProgramFragment },
-{"rsnContextBindProgramVertex",      "(JI)V",                                 (void*)nContextBindProgramVertex },
-{"rsnContextBindProgramRaster",      "(JI)V",                                 (void*)nContextBindProgramRaster },
+{"rsnContextBindRootScript",         "(JJ)V",                                 (void*)nContextBindRootScript },
+{"rsnContextBindProgramStore",       "(JJ)V",                                 (void*)nContextBindProgramStore },
+{"rsnContextBindProgramFragment",    "(JJ)V",                                 (void*)nContextBindProgramFragment },
+{"rsnContextBindProgramVertex",      "(JJ)V",                                 (void*)nContextBindProgramVertex },
+{"rsnContextBindProgramRaster",      "(JJ)V",                                 (void*)nContextBindProgramRaster },
 
 {"rsnSamplerCreate",                 "(JIIIIIF)J",                            (void*)nSamplerCreate },
 
