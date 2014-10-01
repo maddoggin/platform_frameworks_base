@@ -30,10 +30,14 @@
 
 #include <ui/PixelFormat.h>
 
+// TODO: Fix Skia.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <SkImageEncoder.h>
 #include <SkBitmap.h>
 #include <SkData.h>
 #include <SkStream.h>
+#pragma GCC diagnostic pop
 
 using namespace android;
 
@@ -112,6 +116,7 @@ int main(int argc, char** argv)
     argv += optind;
 
     int fd = -1;
+    const char* fn = NULL;
     if (argc == 0) {
         fd = dup(STDOUT_FILENO);
     } else if (argc == 1) {
@@ -135,7 +140,7 @@ int main(int argc, char** argv)
     void const* mapbase = MAP_FAILED;
     ssize_t mapsize = -1;
 
-    void const* base = 0;
+    void const* base = NULL;
     uint32_t w, s, h, f;
     size_t size = 0;
 
@@ -172,7 +177,7 @@ int main(int argc, char** argv)
         }
     }
 
-    if (base) {
+    if (base != NULL) {
         if (png) {
             const SkImageInfo info = SkImageInfo::Make(w, h, flinger2skia(f),
                                                        kPremul_SkAlphaType);
@@ -184,6 +189,9 @@ int main(int argc, char** argv)
             SkData* streamData = stream.copyToData();
             write(fd, streamData->data(), streamData->size());
             streamData->unref();
+            if (fn != NULL) {
+                notifyMediaScanner(fn);
+            }
         } else {
             write(fd, &w, 4);
             write(fd, &h, 4);
