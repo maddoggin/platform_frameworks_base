@@ -51,8 +51,10 @@ LOCAL_MODULE_TAGS := optional
 
 LOCAL_CFLAGS += -DSTATIC_ANDROIDFW_FOR_TOOLS
 
+LOCAL_CFLAGS += -Wall -Werror -Wunused -Wunreachable-code
+
 LOCAL_C_INCLUDES := \
-	external/zlib
+    external/zlib
 
 LOCAL_STATIC_LIBRARIES := liblog libziparchive-host libutils
 
@@ -67,11 +69,11 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES:= $(deviceSources)
 
 LOCAL_SHARED_LIBRARIES := \
-	libbinder \
-	liblog \
-	libcutils \
-	libutils \
-	libz
+    libbinder \
+    liblog \
+    libcutils \
+    libutils \
+    libz
 
 LOCAL_STATIC_LIBRARIES := libziparchive
 
@@ -82,6 +84,8 @@ LOCAL_C_INCLUDES := \
 LOCAL_MODULE:= libandroidfw
 
 LOCAL_MODULE_TAGS := optional
+
+LOCAL_CFLAGS += -Wall -Werror -Wunused -Wunreachable-code
 
 include $(BUILD_SHARED_LIBRARY)
 
